@@ -24,11 +24,13 @@ const cardSchema = new mangoose.Schema<ICard>({
     ref: 'user',
     required: true,
   },
-  likes: [{
-    type: mangoose.Schema.Types.ObjectId,
-    ref: 'user',
-    default: [],
-  }],
+  likes: [
+    {
+      type: mangoose.Schema.Types.ObjectId,
+      ref: 'user',
+      default: [],
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

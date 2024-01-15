@@ -48,6 +48,8 @@ export const postUser = (req: Request, res: Response) => {
     name,
     about,
     avatar,
+    email,
+    password,
   })
     .then((user) =>
       res.status(200).send({

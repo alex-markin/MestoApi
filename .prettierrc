@@ -9,6 +9,5 @@
   "trailingComma": "all",
   "printWidth": 110,
   "endOfLine": "lf",
-  "singleVariableDeclaration": 3,
-
+  "singleVariableDeclaration": 3
 }
