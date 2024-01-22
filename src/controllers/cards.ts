@@ -1,44 +1,84 @@
-import { Request, Response } from 'express';
+// libs
+import { Response, NextFunction } from 'express';
+
+// models
 import Card from '../models/card';
 
-export const getCards = () => Card.find({});
+// constants
+import AuthorizationError from '../constants/errors/auth-error';
+import NotFoundError from '../constants/errors/not-found-err';
+import ServerError from '../constants/errors/server-error';
 
-export const createCard = (req: Request, res: Response) => {
-  Card.create({ ...req.body, owner: req.user._id })
-    .then((card) => res.status(200).send({ data: card }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Переданы некорректные данные' });
-        return;
+// types
+import { RequestWithUser } from '../@types/requestWithUser';
+
+export const getCards = (req: RequestWithUser, res: Response, next: NextFunction) => {
+  Card.find({})
+    .then((cards) => {
+      if (!cards) {
+        throw new NotFoundError('Карточки не найдены');
       }
-      res.status(500).send({ message: err.message });
-    });
+      res.status(200).send({ data: cards });
+    })
+    .catch(next);
 };
 
-export const deleteCard = (req: Request, res: Response) => {
-  Card.findByIdAndDelete(req.params.cardId)
+export const createCard = (req: RequestWithUser, res: Response, next: NextFunction) => {
+  if (req.user) {
+    Card.create({ ...req.body, owner: req.user._id })
+      .then((card) => res.status(200).send({ data: card }))
+      .catch(next);
+  }
+};
+
+export const deleteCard = (req: RequestWithUser, res: Response, next: NextFunction) => {
+  const userId = req.user?._id;
+
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Нет карточки с таким id' });
-        return;
+        throw new NotFoundError('Карточка не найдена');
       }
-      res.status(200).send({ data: card });
+
+      // check for rights to delete
+      if (String(card.owner) !== String(userId)) {
+        throw new AuthorizationError('Нет прав на удаление карточки');
+      }
+
+      return Card.findByIdAndDelete(req.params.cardId);
     })
-    .catch((err) => {
-      res.status(500).send({ message: err.message });
-    });
+    .then((deletedCard) => {
+      if (deletedCard) {
+        res.status(200).send({ data: deletedCard });
+      } else {
+        throw new ServerError('Ошибка сервера');
+      }
+    })
+    .catch(next);
 };
 
-export const likeCard = (req: Request) =>
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
-    { new: true },
-  );
+export const likeCard = (req: RequestWithUser, res: Response, next: NextFunction) => {
+  if (req.user) {
+    Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
+      .then((card) => {
+        if (!card) {
+          throw new NotFoundError('Карточка не найдена');
+        }
+        res.status(200).send({ data: card });
+      })
+      .catch(next);
+  }
+};
 
-export const dislikeCard = (req: Request) =>
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user._id } }, // убрать _id из массива
-    { new: true },
-  );
+export const dislikeCard = (req: RequestWithUser, res: Response, next: NextFunction) => {
+  if (req.user) {
+    Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
+      .then((card) => {
+        if (!card) {
+          throw new NotFoundError('Карточка не найдена');
+        }
+        res.status(200).send({ data: card });
+      })
+      .catch(next);
+  }
+};

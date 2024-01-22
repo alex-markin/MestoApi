@@ -1,4 +1,5 @@
-import mangoose, { ObjectId } from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
+import { CARD_NAME_MIN_LENGTH, CARD_NAME_MAX_LENGTH } from '../constants/models/card-model';
 
 interface ICard {
   name: string;
@@ -8,33 +9,36 @@ interface ICard {
   createdAt: Date;
 }
 
-const cardSchema = new mangoose.Schema<ICard>({
-  name: {
-    type: String,
-    required: true,
-    minlength: 2,
-    maxlength: 30,
-  },
-  link: {
-    type: String,
-    required: true,
-  },
-  owner: {
-    type: mangoose.Schema.Types.ObjectId,
-    ref: 'user',
-    required: true,
-  },
-  likes: [
-    {
-      type: mangoose.Schema.Types.ObjectId,
-      ref: 'user',
-      default: [],
+const cardSchema = new mongoose.Schema<ICard>(
+  {
+    name: {
+      type: String,
+      required: true,
+      minlength: CARD_NAME_MIN_LENGTH,
+      maxlength: CARD_NAME_MAX_LENGTH,
     },
-  ],
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    link: {
+      type: String,
+      required: true,
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'user',
+      required: true,
+    },
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        default: [],
+      },
+    ],
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-});
+  { versionKey: false },
+);
 
-export default mangoose.model<ICard>('card', cardSchema);
+export default mongoose.model<ICard>('card', cardSchema);

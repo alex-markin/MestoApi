@@ -1,13 +1,11 @@
 /* eslint-disable*/
-
 import { ObjectId } from 'mongoose';
+import { IUser } from '../../models/user';
 
 declare global {
   namespace Express {
-    interface Request {
-      user: {
-        _id: string | ObjectId;
-      }
+    export interface Request {
+      user?: IUser;
     }
   }
 }

@@ -1,8 +1,23 @@
-import express, { NextFunction, Request, Response } from 'express';
+// libs
+import express, { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import userRouter from './routes/users';
+import { errors } from 'celebrate';
 
-// Слушаем 3000 порт
+// routers
+import { ROUTES } from './constants/routes';
+import userRouter from './routes/users';
+import login from './routes/signin';
+import signup from './routes/signup';
+import cardsRouter from './routes/cards';
+
+// middlewares
+import auth from './middlewares/auth';
+import { requestLogger, errorLogger } from './middlewares/logger';
+
+// types
+import ErrorWithStatus from './@types/error-with-status';
+import { RequestWithUser } from './@types/requestWithUser';
+
 const { PORT = 3000 } = process.env;
 
 const app = express();
@@ -11,14 +26,29 @@ app.use(express.urlencoded({ extended: true }));
 
 mongoose.connect('mongodb://localhost:27017/mestodb');
 
-// app.use((req: Request, res: Response, next: NextFunction) => {
-//   req.user = {
-//     _id: '659ea94c156925d426f8ab2b',
-//   };
-//   next();
-// });
+app.use(requestLogger);
 
-app.use('/', userRouter);
+// unprotected routes
+app.post(ROUTES.signin, login);
+app.post(ROUTES.signup, signup);
+
+// protected routes
+app.use(auth);
+app.use(ROUTES.basicRoute, userRouter);
+app.use(ROUTES.basicRoute, cardsRouter);
+
+// error handlers
+app.use(errorLogger);
+app.use(errors());
+app.use((err: ErrorWithStatus, req: RequestWithUser, res: Response, next: NextFunction) => {
+  const { statusCode = 500, message } = err;
+
+  res.status(statusCode).send({
+    message: statusCode === 500 ? 'На сервере произошла ошибка' : message,
+  });
+
+  next();
+});
 
 app.listen(PORT, () => {
   console.log('Server started');
